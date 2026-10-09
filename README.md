@@ -3,11 +3,11 @@
 Repositorio de prácticas de la asignatura **Sistemas Operativos**.
 
 <p align="center">
-  <img src="URL_DE_LA_IMAGEN" alt="Logo de la Universidad Nacional de Colombia" width="150">
+  <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Escudo_de_la_Universidad_Nacional_de_Colombia_%282016%29.svg/500px-Escudo_de_la_Universidad_Nacional_de_Colombia_%282016%29.svg.png?utm_source=es.wikipedia.org&utm_campaign=index&utm_content=thumbnail" alt="Logo de la Universidad Nacional de Colombia" width="150">
 </p>
 
 <p align="center">
-  **Universidad Nacional de Colombia**<br>
+  <b>Universidad Nacional de Colombia</b>b><br>
   Ingeniería de Sistemas
 </p>
 
