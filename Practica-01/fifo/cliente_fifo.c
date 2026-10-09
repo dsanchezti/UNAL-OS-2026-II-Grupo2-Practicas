@@ -4,8 +4,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
 #include "../common/protocolo.h"
 #include "../common/utilidades.h"
+#include "../common/interfaz.h"
 
 #define FIFO_SOLICITUDES "fifo/solicitudes.fifo"
 #define FIFO_RESPUESTAS  "fifo/respuestas.fifo"
@@ -13,77 +15,26 @@
 int main(void) {
     int continuar = 1;
     while (continuar) {
-        Solicitud solicitud = {0};
+        Solicitud solicitud = {0}; if (!leer_solicitud(&solicitud)) { continue; } if (solicitud.operacion == SALIR) { continuar = 0; }
 
-        printf("\n=== MENU ===\n");
-        printf("1. Buscar pais por año\n");
-        printf("2. Buscar todos los registros de un pais\n");
-        printf("3. Buscar todos los paises de un año\n");
-        printf("4. Salir\n");
-        printf("Seleccione una opcion: ");
+        int fd_solicitudes = open(
+            FIFO_SOLICITUDES,
+            O_WRONLY | O_NONBLOCK
+        );
 
-        if (scanf("%d", (int *)&solicitud.operacion) != 1) {
-            fprintf(stderr, "Opcion invalida.\n");
-            int c;
-            while ((c = getchar()) != '\n' && c != EOF) {}
+        if (fd_solicitudes == -1) {
+            if (errno == ENXIO) {
+                fprintf(stderr,
+                        "Servidor no disponible. "
+                        "Inicie el servidor e intente de nuevo.\n");
+            } else {
+                perror("Error al abrir FIFO de solicitudes");
+            }
+
             continue;
         }
-
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF) {}
-
-        switch (solicitud.operacion) {
-            case BUSCAR_PAIS_ANIO:
-                printf("Ingrese el nombre del pais: ");
-                if (fgets(solicitud.pais, TAM_PAIS, stdin) == NULL) {
-                    fprintf(stderr, "No se pudo leer el pais.\n");
-                    continue;
-                }
-                recortar_espacios(solicitud.pais);
-
-                printf("Ingrese el año: ");
-                if (scanf("%d", &solicitud.anio) != 1) {
-                    fprintf(stderr, "Año invalido.\n");
-                    while ((c = getchar()) != '\n' && c != EOF) {}
-                    continue;
-                }
-                while ((c = getchar()) != '\n' && c != EOF) {}
-                break;
-
-            case BUSCAR_PAIS:
-                printf("Ingrese el nombre del pais: ");
-                if (fgets(solicitud.pais, TAM_PAIS, stdin) == NULL) {
-                    fprintf(stderr, "No se pudo leer el pais.\n");
-                    continue;
-                }
-                recortar_espacios(solicitud.pais);
-                break;
-
-            case BUSCAR_ANIO:
-                printf("Ingrese el año: ");
-                if (scanf("%d", &solicitud.anio) != 1) {
-                    fprintf(stderr, "Año invalido.\n");
-                    while ((c = getchar()) != '\n' && c != EOF) {}
-                    continue;
-                }
-                while ((c = getchar()) != '\n' && c != EOF) {}
-                break;
-
-            case SALIR:
-                continuar = 0;
-                break;
-
-            default:
-                printf("Opcion invalida. Intente de nuevo.\n");
-                continue;
-        }
-
-        int fd_solicitudes = open(FIFO_SOLICITUDES, O_WRONLY);
-        if (fd_solicitudes == -1) {
-            perror("Error al abrir FIFO de solicitudes");
-            return 1;
-        }
-
+        
+        
         ssize_t n = write(fd_solicitudes, &solicitud, sizeof(solicitud));
         close(fd_solicitudes);
 
@@ -92,35 +43,72 @@ int main(void) {
             return 1;
         }
 
-        int fd_respuestas = open(FIFO_RESPUESTAS, O_RDONLY);
+        int fd_respuestas = open(
+            FIFO_RESPUESTAS,
+            O_RDONLY | O_NONBLOCK
+        );
         if (fd_respuestas == -1) {
             perror("Error al abrir FIFO de respuestas");
             return 1;
         }
 
         Respuesta respuesta;
+        int tiempo_agotado = 0;
 
         do {
-            n = read(fd_respuestas, &respuesta, sizeof(respuesta));
+            struct pollfd evento = {
+                .fd = fd_respuestas,
+                .events = POLLIN
+            };
+
+            int listo = poll(&evento, 1, 5000);
+
+            if (listo == -1) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
+                perror("Error en poll");
+                tiempo_agotado = 1;
+                break;
+            }
+
+            if (listo == 0) {
+                fprintf(stderr,
+                        "Tiempo agotado: el servidor no respondio "
+                        "en 5 segundos.\n");
+                tiempo_agotado = 1;
+                break;
+            }
+
+            ssize_t n = read(
+                fd_respuestas,
+                &respuesta,
+                sizeof(respuesta)
+            );
 
             if (n != sizeof(respuesta)) {
-                fprintf(stderr, "No se recibio una respuesta completa.\n");
-                close(fd_respuestas);
-                return 1;
+                fprintf(stderr,
+                        "No se recibio una respuesta completa.\n");
+                tiempo_agotado = 1;
+                break;
             }
 
             if (respuesta.estado == -1) {
                 fprintf(stderr, "Error del servidor: %s\n",
                         respuesta.resultado);
-            }else{
+            } else {
                 printf("%s\n", respuesta.resultado);
             }
 
         } while (respuesta.fin == 0);
 
         close(fd_respuestas);
-    }
 
+        if (tiempo_agotado) {
+            continue;
+        }
+    }
     printf("Cliente finalizado.\n");
     return 0;
 }

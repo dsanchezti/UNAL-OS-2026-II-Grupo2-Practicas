@@ -9,6 +9,7 @@
 #include "../common/protocolo.h"
 #include <strings.h>
 #include <ctype.h>
+#include "../common/csv.h"
 #define FIFO_SOLICITUDES "fifo/solicitudes.fifo"
 #define FIFO_RESPUESTAS  "fifo/respuestas.fifo"
 
@@ -21,61 +22,6 @@ int crear_fifo(const char *ruta) {
     }
 
     return 0;
-}
-
-
-static int leer_campo_csv(char **cursor, char *destino, size_t capacidad) {
-    char *p = *cursor;
-    size_t i = 0;
-
-    if (*p == '\0' || *p == '\n' || *p == '\r') {
-        return 0;
-    }
-
-    if (*p == '"') {
-        p++;
-
-        while (*p != '\0') {
-            if (*p == '"') {
-                if (p[1] == '"') {
-                    if (i + 1 < capacidad) {
-                        destino[i++] = '"';
-                    }
-                    p += 2;
-                } else {
-                    p++;
-                    break;
-                }
-            } else {
-                if (i + 1 < capacidad) {
-                    destino[i++] = *p;
-                }
-                p++;
-            }
-        }
-
-        while (*p != '\0' && *p != ',' &&
-               *p != '\n' && *p != '\r') {
-            p++;
-        }
-    } else {
-        while (*p != '\0' && *p != ',' &&
-               *p != '\n' && *p != '\r') {
-            if (i + 1 < capacidad) {
-                destino[i++] = *p;
-            }
-            p++;
-        }
-    }
-
-    destino[i] = '\0';
-
-    if (*p == ',') {
-        p++;
-    }
-
-    *cursor = p;
-    return 1;
 }
 
 
@@ -266,13 +212,14 @@ int main(void) {
                     "No se recibio la solicitud completa.\n");
             continue;
         }
-
+        //sleep(10); //test de tiempo
         int fd_respuestas = open(FIFO_RESPUESTAS, O_WRONLY);
 
         if (fd_respuestas == -1) {
             perror("Error al abrir FIFO de respuestas");
             break;
         }
+
 
         switch (solicitud.operacion) {
             case BUSCAR_PAIS_ANIO:
