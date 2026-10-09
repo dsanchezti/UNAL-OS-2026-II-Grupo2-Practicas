@@ -1,0 +1,13 @@
+# FIFOs temporales
+
+**/*.fifo
+
+# Configuración local de VS Code
+
+**/.vscode/
+
+# Ejecutables compilados de la práctica 1
+
+/Practica-01/fifo/cliente_fifo
+/Practica-01/fifo/servidor_fifo
+
