@@ -7,7 +7,7 @@ Repositorio de prácticas de la asignatura **Sistemas Operativos**.
 </p>
 
 <p align="center">
-  <b>Universidad Nacional de Colombia</b>b><br>
+  <b>Universidad Nacional de Colombia</b><br>
   Ingeniería de Sistemas
 </p>
 
