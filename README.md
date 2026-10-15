@@ -15,6 +15,7 @@ Repositorio de prácticas de la asignatura **Sistemas Operativos**.
 
 * [Daniel Santiago Muñoz]
 * [Daniel Daniel Mauricio Sanchez Tique]
+* [Santiago Andrés Maldonado Gahona]
 
 ## Información académica
 
